@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: demo
+  threads:
+    virtual:
+      enabled: true
+
+logging:
+  file:
+    name: /var/logs/demo.log
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
+  otlp:
+    metrics:
+      export:
+        enabled: true
+        url: http://localhost:4318/v1/metrics
+        step: 20s
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+  tracing:
+    sampling:
+      probability: 1.0
