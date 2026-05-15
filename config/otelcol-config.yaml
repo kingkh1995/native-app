@@ -1,0 +1,63 @@
+# OpenTelemetry Collector 配置
+# 数据流: receivers(接收) → processors(处理) → exporters(导出)
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        # OTLP gRPC 接收端点，应用通过 4317 端口发送遥测数据
+        endpoint: 0.0.0.0:4317
+      http:
+        # OTLP HTTP 接收端点，应用通过 4318 端口发送遥测数据（Spring Boot OTLP 默认使用 HTTP）
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # 批处理器：将数据攒批发送，减少网络请求次数，提高吞吐量
+  batch:
+
+exporters:
+  # 调试导出器：将遥测数据输出到 Collector 控制台日志，用于开发调试
+  debug:
+    verbosity: basic
+
+  # Prometheus 导出器：将 OTLP 指标转换为 Prometheus exposition format，
+  # 暴露在 8889 端口供 Prometheus 抓取
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    # 为所有指标附加固定标签，用于标识服务来源
+    const_labels:
+      service: demo
+    # 将 OTLP Resource 属性转为 Prometheus 标签（如 service.name 变为指标标签）
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # OTLP gRPC 导出器：将链路追踪数据转发到 Tempo
+  otlp/tempo:
+    endpoint: tempo:5317
+    tls:
+      # 容器内网络通信，无需 TLS
+      insecure: true
+
+  # OTLP HTTP 导出器：将日志数据转发到 Loki（Loki 原生支持 OTLP HTTP 协议）
+  otlphttp/logs:
+    endpoint: "http://loki:3100/otlp"
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    # 指标管道：App → OTLP → Batch → Prometheus + 控制台
+    metrics:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ prometheus, debug ]
+    # 链路追踪管道：App → OTLP → Batch → Tempo + 控制台
+    traces:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ otlp/tempo, debug ]
+    # 日志管道：App → OTLP → Batch → Loki + 控制台
+    logs:
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ otlphttp/logs, debug ]

@@ -1,50 +1,83 @@
+# 可观测性基础设施
+# 启动命令: docker compose up -d
+#
+# 数据流:
+#   App → OTel Collector → Prometheus (指标)
+#                       → Tempo      (链路追踪)
+#                       → Loki       (日志)
+#                                  → Grafana (统一可视化)
+#
+# 端口映射:
+#   3500  Grafana  (admin/123456)
+#   3100  Loki
+#   3200  Tempo  (HTTP API, Grafana 查询)
+#   5317  Tempo  (OTLP gRPC, 接收追踪数据)
+#   4317  OTel Collector (OTLP gRPC)
+#   4318  OTel Collector (OTLP HTTP, Spring Boot 默认使用此端口)
+#   8889  OTel Collector (Prometheus exporter, 供 Prometheus 抓取)
+#   9090  Prometheus
+
 services:
+  # OpenTelemetry Collector - 遥测数据中转站
+  # 接收应用的指标/追踪/日志数据，处理后分发到各后端
   otel-collector:
     image: otel/opentelemetry-collector:latest
     container_name: otel-collector
-    command: [ "--config=/etc/otelcol-config.yml" ]
+    command: [ "--config=/etc/otelcol-config.yaml" ]
     volumes:
-      - ./config/otelcol-config.yml:/etc/otelcol-config.yml
+      - ./config/otelcol-config.yaml:/etc/otelcol-config.yaml
     ports:
-      - "4317:4317"
-      - "4318:4318"
-      - "8889:8889"
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8889:8889"   # Prometheus exporter
+
+  # Prometheus - 指标存储与查询
+  # 通过抓取 OTel Collector 的 Prometheus exporter 端点获取指标数据
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     volumes:
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./config/prometheus.yaml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
     depends_on:
       - otel-collector
+
+  # Tempo - 分布式链路追踪存储
+  # 接收 OTel Collector 转发的追踪数据
   tempo:
     image: grafana/tempo:latest
     container_name: tempo
-    command: [ "-config.file=/etc/tempo.yml" ]
+    command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
-      - ./config/tempo.yml:/etc/tempo.yml
-      - ./data/tempo:/var/tempo
+      - ./config/tempo.yaml:/etc/tempo.yaml
     ports:
-      - "3200:3200"
-      - "5317:5317"
+      - "3200:3200"   # HTTP API (Grafana 查询)
+      - "5317:5317"   # OTLP gRPC (接收追踪数据)
     depends_on:
       - otel-collector
+
+  # Loki - 日志聚合存储
+  # 接收 OTel Collector 通过 OTLP HTTP 转发的日志数据
   loki:
     image: grafana/loki:latest
     container_name: loki
-#    command: [ "-config.file=/etc/loki/local-config.yml" ]
     volumes:
-      - ./config/loki.yml:/etc/loki/local-config.yml
+      # 挂载自定义配置到 Loki 默认加载路径
+      - ./config/loki.yaml:/etc/loki/local-config.yaml
     ports:
       - "3100:3100"
+
+  # Grafana - 统一可视化面板
+  # 数据源通过 datasource.yaml 自动配置，开箱即用
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     environment:
       - "GF_SECURITY_ADMIN_PASSWORD=123456"
     volumes:
-      - ./config/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./config/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+      - ./config/dashboard-providers.yaml:/etc/grafana/provisioning/dashboards/dashboard-providers.yaml
+      - ./config/dashboards:/var/lib/grafana/dashboards
     ports:
-      - "3000:3000"
-
+      - "3500:3000"

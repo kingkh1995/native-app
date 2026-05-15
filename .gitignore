@@ -39,8 +39,9 @@ out/
 ### External binary files ###
 ext-files/
 
-### Data ###
-data/
-
 ### Logs ###
 logs/
+
+### Docs ###
+docs/
+/.sisyphus/

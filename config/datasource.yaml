@@ -1,0 +1,55 @@
+# Grafana 数据源自动配置
+# 容器启动时自动加载，无需在 Grafana UI 中手动添加
+# uid 为固定值，Dashboard JSON 通过 uid 引用数据源
+
+apiVersion: 1
+
+datasources:
+  # Prometheus - 指标数据源
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+
+  # Tempo - 链路追踪数据源
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: true
+    jsonData:
+      serviceMap:
+        datasourceUid: prometheus
+      # 从 Trace 跳转到 Loki 查看对应日志（新版 API，支持按 traceID/spanID 过滤）
+      tracesToLogsV2:
+        datasourceUid: loki
+        filterByTraceID: true
+        filterBySpanID: true
+      # 从 Trace 跳转到 Prometheus 查看关联指标（QPS/延迟/错误率曲线）
+      tracesToMetrics:
+        datasourceUid: prometheus
+
+  # Loki - 日志数据源
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true
+    jsonData:
+      # 通过 derivedFields + matcherType: label 从 Loki 结构化元数据中提取 trace_id
+      # 实现 Log → Trace 跳转。Loki 通过 OTLP HTTP 接收日志时，自动将 OTel trace_id
+      # 索引为结构化元数据 label（trace_id），而非日志行文本内。
+      # 因此不能使用 regex 匹配日志文本（参见 grafana/grafana#92699），
+      # 必须使用 matcherType: label 从 metadata 标签中提取。
+      derivedFields:
+        - datasourceUid: tempo
+          matcherType: label
+          matcherRegex: trace_id
+          name: TraceID
+          url: '$${__value.raw}'
+          urlDisplayLabel: 'View Trace'

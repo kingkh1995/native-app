@@ -5,10 +5,6 @@ spring:
     virtual:
       enabled: true
 
-logging:
-  file:
-    name: /var/logs/demo.log
-
 management:
   endpoints:
     web:
@@ -17,6 +13,10 @@ management:
   endpoint:
     health:
       show-details: always
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
   otlp:
     metrics:
       export:

@@ -1,16 +1,15 @@
 // https://docs.spring.io/spring-boot/reference/actuator/observability.html
+// 构建默认的基础镜像是 paketobuildpacks/builder-noble-java-tiny:latest。它占用空间小，攻击面小。它不包含 shell，并且只包含少量系统库。如需要支持更多工具，可以使用 paketobuildpacks/ubuntu-noble-run-base:latest。
+// 通过GraalVM Native Support，无需本地安装graalvm环境，直接在docker容器环境内构建native镜像。
 plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.6'
     id 'io.spring.dependency-management' version '1.1.7'
-    // 构建默认的基础镜像是 paketobuildpacks/builder-noble-java-tiny:latest。它占用空间小，攻击面小。它不包含 shell，并且只包含少量系统库。
-    // 如需要支持更多工具，可以使用 paketobuildpacks/ubuntu-noble-run-base:latest。
-    // 无需本地安装graalvm环境，通过docker启动容器，在容器环境内构建原生镜像。
     id 'org.graalvm.buildtools.native' version '0.11.5'
 }
 group = 'com.kk'
 version = '0.0.1-SNAPSHOT'
-description = 'Demo project for Spring Boot'
+description = 'Demo native project for Spring Boot'
 
 java {
     toolchain {
@@ -32,18 +31,18 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+    compileOnly 'org.projectlombok:lombok'
     implementation 'org.springframework.boot:spring-boot-starter-restclient'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    compileOnly 'org.projectlombok:lombok'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
     // Spring Boot 4.0 可观测性 starter（包含 OTel SDK + tracing bridge + OTLP exporter）
     implementation 'org.springframework.boot:spring-boot-starter-opentelemetry'
     runtimeOnly 'io.micrometer:micrometer-registry-otlp'
     // Logback OTel appender（将日志导出到 OTel Collector）
-    implementation 'io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.20.0-alpha'
+    implementation 'io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0:2.21.0-alpha'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -58,13 +57,12 @@ tasks.named('bootRun') {
     args '--spring.profiles.active=dev'
 }
 
-// docker run --rm --user=root --network=host -p 8080:8080 -v demo-logs:/var/logs local-dev/demo:0.0.1-SNAPSHOT
+// docker run --rm --user=root --network=host -p 8080:8080 -v demo-logs:/var/logs native-app/demo:0.0.1-SNAPSHOT
 bootBuildImage {
-    imageName = "local-dev/${project.name}:${project.version}"
+    imageName = "native-app/${project.name}:${project.version}"
     verboseLogging = true
-    cleanCache = true
+    cleanCache = false
     pullPolicy = "IF_NOT_PRESENT"
-    // 挂载卷到容器中，替换构建容器的配置文件，替换软件包下载地址。
     bindings = [
             "${projectDir}/bindings:/platform/bindings",
             "${projectDir}/ext-files:/ext-files"
