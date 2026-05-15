@@ -45,3 +45,8 @@ logs/
 ### Docs ###
 docs/
 /.sisyphus/
+
+### OpenSpec ###
+openspec/changes/*
+!openspec/changes/archive/
+/.omo/

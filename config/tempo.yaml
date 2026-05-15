@@ -16,6 +16,26 @@ distributor:
           # OTLP gRPC 接收端点，OTel Collector 将追踪数据转发到此地址
           endpoint: 0.0.0.0:5317
 
+# 查询前端配置（启用搜索功能）
+query_frontend:
+  max_outstanding_per_tenant: 2000
+  search:
+    # 后端搜索结果可查的时间间隔
+    query_backend_after: 1m
+
+# 查询器配置
+querier:
+  max_concurrent_queries: 20
+
+# Live store 配置（Tempo 3.x 新架构，替代旧的 ingester）
+live_store:
+  # 追踪在 flush 之前的最大空闲时间
+  max_trace_idle: 5s
+  # 单个 block 的最大持续时间（完成后的 block 才可搜索）
+  max_block_duration: 10s
+  # block 完成后在 live-store 中保留的时间
+  complete_block_timeout: 30m
+
 storage:
   trace:
     backend: local

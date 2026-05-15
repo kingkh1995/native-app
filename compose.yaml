@@ -81,3 +81,18 @@ services:
       - ./config/dashboards:/var/lib/grafana/dashboards
     ports:
       - "3500:3000"
+
+  # MySQL - 数据库
+  mysql:
+    image: mysql:8.4
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: '123456'
+      MYSQL_DATABASE: native-app
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+volumes:
+  mysql-data:

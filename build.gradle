@@ -1,5 +1,5 @@
 // https://docs.spring.io/spring-boot/reference/actuator/observability.html
-// 构建默认的基础镜像是 paketobuildpacks/builder-noble-java-tiny:latest。它占用空间小，攻击面小。它不包含 shell，并且只包含少量系统库。如需要支持更多工具，可以使用 paketobuildpacks/ubuntu-noble-run-base:latest。
+// 运行镜像已切换到 paketobuildpacks/ubuntu-noble-run:latest（包含 shell，可 docker exec 登录容器）。构建仍然使用 paketobuildpacks/builder-noble-java-tiny 作为构建器。
 // 通过GraalVM Native Support，无需本地安装graalvm环境，直接在docker容器环境内构建native镜像。
 plugins {
     id 'java'
@@ -25,7 +25,7 @@ configurations {
 
 repositories {
     maven {
-        url 'https://repo.huaweicloud.com/repository/maven/'
+        url = 'https://repo.huaweicloud.com/repository/maven/'
     }
     mavenCentral()
 }
@@ -38,6 +38,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    runtimeOnly 'com.mysql:mysql-connector-j'
     // Spring Boot 4.0 可观测性 starter（包含 OTel SDK + tracing bridge + OTLP exporter）
     implementation 'org.springframework.boot:spring-boot-starter-opentelemetry'
     runtimeOnly 'io.micrometer:micrometer-registry-otlp'
@@ -46,23 +48,34 @@ dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:testcontainers-mysql'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'org.apiguardian:apiguardian-api:1.1.2'
 }
 
-tasks.named('test') {
-    useJUnitPlatform()
+tasks.named('compileJava') {
+    dependsOn('clean')
+}
+
+tasks.named('processAot') {
+    args '--spring.profiles.active=dev'
 }
 
 tasks.named('bootRun') {
     args '--spring.profiles.active=dev'
 }
 
-// docker run --rm --user=root --network=host -p 8080:8080 -v demo-logs:/var/logs native-app/demo:0.0.1-SNAPSHOT
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// docker run --rm --user=root --network=native-app_default -p 8080:8080 -v demo-logs:/var/logs native-app/demo:0.0.1-SNAPSHOT
 bootBuildImage {
     imageName = "native-app/${project.name}:${project.version}"
     verboseLogging = true
     cleanCache = false
-    pullPolicy = "IF_NOT_PRESENT"
+    runImage = "paketobuildpacks/ubuntu-noble-run:latest"
     bindings = [
             "${projectDir}/bindings:/platform/bindings",
             "${projectDir}/ext-files:/ext-files"

@@ -1,3 +1,25 @@
+spring:
+  datasource:
+    # native 容器与 MySQL 容器在同一个 Docker 网络，用 service name 访问
+    url: jdbc:mysql://mysql:3306/native-app
+    username: root
+    password: '123456'
+
+management:
+  otlp:
+    metrics:
+      export:
+        url: http://otel-collector:4318/v1/metrics
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: http://otel-collector:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://otel-collector:4318/v1/logs
+
 logging:
   file:
     name: /var/logs/demo.log

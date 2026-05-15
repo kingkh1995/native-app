@@ -2,6 +2,7 @@ package com.kk.demo.observability;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.kk.demo.TestMySqlConfiguration;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriUtils;
 
@@ -34,7 +36,8 @@ import org.springframework.web.util.UriUtils;
  * 前提条件：Docker 可观测性栈（otel-collector + prometheus + tempo + loki）必须已在运行。
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import(ObservabilityEndToEndTest.OtelAppenderConfig.class)
+@ActiveProfiles("dev")
+@Import({TestMySqlConfiguration.class, ObservabilityEndToEndTest.OtelAppenderConfig.class})
 class ObservabilityEndToEndTest {
 
   // Test-specific configuration: install the OpenTelemetry log appender after the

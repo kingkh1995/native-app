@@ -24,6 +24,8 @@ exporters:
   # 暴露在 8889 端口供 Prometheus 抓取
   prometheus:
     endpoint: "0.0.0.0:8889"
+    # 指标过期时间：应用停止后 30s 内移除指标，使 Grafana 面板及时反映状态变化
+    metric_expiration: 30s
     # 为所有指标附加固定标签，用于标识服务来源
     const_labels:
       service: demo

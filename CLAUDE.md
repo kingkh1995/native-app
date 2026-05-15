@@ -39,8 +39,8 @@ Spring Boot 4.0.6 脚手架项目，使用 GraalVM native-image 构建为 Docker
 docker compose up -d
 # 2b. 构建native镜像并发布到本地docker镜像仓库
 ./gradlew bootBuildImage
-# 2c. 通过docker运行镜像
-docker run --rm --user=root --network=host -p 8080:8080 -v demo-logs:/var/logs native-app/demo:0.0.1-SNAPSHOT
+# 2c. 通过docker运行镜像（与 compose 服务同网络，通过容器名解析）
+docker run --rm --user=root --network=native-app_default -p 8080:8080 native-app/demo:0.0.1-SNAPSHOT
 ```
 
 dev 模式下 `spring-boot-docker-compose`（developmentOnly 依赖）会自动检测 `compose.yaml` 并连接可观测性服务，无需手动配置连接地址。
