@@ -50,3 +50,6 @@ docs/
 openspec/changes/*
 !openspec/changes/archive/
 /.omo/
+
+### gstack (local dev clone) ###
+.gstack/

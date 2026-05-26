@@ -1,8 +1,8 @@
-# CLAUDE.md
+# 项目技术手册
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> 原 CLAUDE.md 中的项目详细信息已迁移至此。AGENTS.md 仅引用本文件。
 
-## Project Overview
+## 项目概述
 
 Spring Boot 4.0.6 脚手架项目，使用 GraalVM native-image 构建为 Docker 镜像运行。集成了基于 OpenTelemetry 的完整可观测性体系（指标、链路追踪、日志）。
 
@@ -12,7 +12,7 @@ Spring Boot 4.0.6 脚手架项目，使用 GraalVM native-image 构建为 Docker
 - 基础镜像: `paketobuildpacks/builder-noble-java-tiny`（无 shell，体积小）
 - 使用 Lombok（`@Slf4j`, `@RequiredArgsConstructor` 等），IDE 需启用 annotation processing
 
-## Build Commands
+## 构建命令
 
 ```bash
 # 构建 native image Docker 镜像（镜像名 native-app/demo:0.0.1-SNAPSHOT）
@@ -28,10 +28,10 @@ Spring Boot 4.0.6 脚手架项目，使用 GraalVM native-image 构建为 Docker
 ./gradlew bootRun
 ```
 
-## Running the Application
+## 运行应用
 
 ```bash
-# 1. 本地开发（dev profile，本地日志路径为./logs/demo.log），无需手动启动可观测性基础设施（spring-boot-docker-compose组件会在bootRun运行时启动可观测性基础设施），
+# 1. 本地开发（dev profile，本地日志路径为./logs/demo.log），无需手动启动可观测性基础设施
 ./gradlew clean bootRun
 
 # 2. Docker native image（default profile）
@@ -45,7 +45,7 @@ docker run --rm --user=root --network=native-app_default -p 8080:8080 native-app
 
 dev 模式下 `spring-boot-docker-compose`（developmentOnly 依赖）会自动检测 `compose.yaml` 并连接可观测性服务，无需手动配置连接地址。
 
-## Testing HTTP Endpoints
+## 测试 HTTP 端点
 
 应用启动后，在 Windows 终端 (cmd) 下测试接口：
 
@@ -62,7 +62,7 @@ curl http://localhost:8080/actuator/metrics/hello.count
 
 预期响应：`Hello World!`
 
-## Two Startup Modes
+## 两种启动模式
 
 | | 本地开发 (`./gradlew bootRun`) | Docker native image |
 |---|---|---|
@@ -70,7 +70,7 @@ curl http://localhost:8080/actuator/metrics/hello.count
 | **日志路径** | `./logs/demo.log` | `/var/logs/demo.log` |
 | **配置文件** | `application.yml` + `application-dev.yml` | `application.yml` + `application-default.yml` |
 
-## Observability Stack
+## 可观测性栈
 
 所有遥测数据通过 OTLP 协议发送到 OTel Collector，由 Collector 分发到三个后端组件，最后在 Grafana 统一查看：
 
@@ -106,7 +106,7 @@ App → OTLP HTTP (4318) → OTel Collector
 - `logging.file.name` 分别在 profile 配置中定义：`application-dev.yml`（`./logs/demo.log`）供本地开发，`application-default.yml`（`/var/logs/demo.log`）供 Docker native image。`application.yml` 本身不设置此属性，避免两个路径同时生效
 - **初始化顺序**：`DemoApplication.main()` 必须在 Spring 上下文启动后才能获取 `OpenTelemetrySdk` bean 并调用 `OpenTelemetryAppender.install()`。OTEL appender 在 install 之前的日志不会被导出
 
-## Native Image Build Bindings
+## Native Image 构建绑定
 
 `bindings/` 目录通过 Paketo buildpack bindings 机制，将 `ext-files/` 中的本地文件注入构建容器，用于替换构建时的依赖下载源：
 - `bellsoft-jdk-config`: 指向本地 Bellsoft Liberica JDK 25 tarball
@@ -114,7 +114,7 @@ App → OTLP HTTP (4318) → OTel Collector
 
 `ext-files/` 目录不纳入 Git（体积大），需手动维护。
 
-## Notes
+## 其他说明
 
 - Maven 仓库使用华为云镜像，Gradle 分发包使用腾讯云镜像
 - native image 容器启用了远程调试（8000 端口），JVM 堆限制 256MB
